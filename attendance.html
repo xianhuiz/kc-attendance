@@ -1,0 +1,1242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <title>KC Group Attendance</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --primary: #4f46e5;
+      --primary-light: #ede9fe;
+      --green: #16a34a;
+      --green-light: #dcfce7;
+      --red: #dc2626;
+      --red-light: #fee2e2;
+      --amber: #d97706;
+      --amber-light: #fef3c7;
+      --gray-50: #f9fafb;
+      --gray-100: #f3f4f6;
+      --gray-200: #e5e7eb;
+      --gray-300: #d1d5db;
+      --gray-400: #9ca3af;
+      --gray-500: #6b7280;
+      --gray-600: #4b5563;
+      --gray-700: #374151;
+      --gray-800: #1f2937;
+      --gray-900: #111827;
+      --shadow-sm: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
+      --shadow-md: 0 4px 12px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.04);
+      --radius: 16px;
+      --radius-sm: 10px;
+    }
+
+    html, body {
+      height: 100%;
+      min-height: 100dvh;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', sans-serif;
+      background: var(--gray-50);
+      color: var(--gray-900);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── HEADER ── */
+    .app-header {
+      position: sticky;
+      top: 0;
+      z-index: 90;
+      background: white;
+      border-bottom: 1px solid var(--gray-200);
+      padding: 14px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: var(--shadow-sm);
+    }
+    .app-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .header-time {
+      text-align: right;
+      font-size: 13px;
+      color: var(--gray-500);
+      line-height: 1.4;
+    }
+    .header-time strong { display: block; font-size: 15px; color: var(--gray-800); font-weight: 600; }
+
+    /* ── PAGES ── */
+    .page { display: none; }
+    .page.active { display: block; }
+    .page-inner { padding: 16px 16px 100px; max-width: 480px; margin: 0 auto; }
+
+    /* ── CARDS ── */
+    .card {
+      background: white;
+      border-radius: var(--radius);
+      padding: 18px;
+      margin-bottom: 14px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    /* ── CLOCK DISPLAY ── */
+    .clock-card {
+      background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+      color: white;
+      text-align: center;
+      padding: 24px 20px 20px;
+      border-radius: var(--radius);
+      margin-bottom: 14px;
+      box-shadow: 0 4px 20px rgba(79, 70, 229, 0.35);
+    }
+    .clock-time {
+      font-size: 44px;
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: -1px;
+      line-height: 1;
+      margin-bottom: 6px;
+    }
+    .clock-date {
+      font-size: 14px;
+      opacity: 0.85;
+      font-weight: 500;
+    }
+
+    /* ── STAFF SELECT ── */
+    .field-label {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--gray-500);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 8px;
+    }
+    .select-wrap { position: relative; }
+    .select-wrap::after {
+      content: '';
+      position: absolute;
+      right: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 0; height: 0;
+      border-left: 5px solid transparent;
+      border-right: 5px solid transparent;
+      border-top: 6px solid var(--gray-500);
+      pointer-events: none;
+    }
+    select {
+      width: 100%;
+      padding: 14px 40px 14px 16px;
+      border: 2px solid var(--gray-200);
+      border-radius: var(--radius-sm);
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--gray-900);
+      background: white;
+      appearance: none;
+      -webkit-appearance: none;
+      cursor: pointer;
+      transition: border-color 0.15s;
+    }
+    select:focus { outline: none; border-color: var(--primary); }
+    select option[value=""] { color: var(--gray-400); }
+
+    /* ── STATUS CARD ── */
+    .status-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 16px;
+    }
+    .status-name { font-size: 20px; font-weight: 800; color: var(--gray-900); }
+    .status-since { font-size: 13px; color: var(--gray-500); margin-top: 3px; }
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      border-radius: 100px;
+      font-size: 13px;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+    .pill-in { background: var(--green-light); color: var(--green); }
+    .pill-out { background: var(--red-light); color: var(--red); }
+    .pill-none { background: var(--gray-100); color: var(--gray-500); }
+    .pill-dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    /* ── BUTTONS ── */
+    .btn {
+      width: 100%;
+      padding: 17px;
+      border: none;
+      border-radius: var(--radius-sm);
+      font-size: 17px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      transition: transform 0.1s, box-shadow 0.1s, opacity 0.15s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .btn:active:not(:disabled) { transform: scale(0.97); }
+    .btn:disabled { opacity: 0.38; cursor: not-allowed; }
+    .btn-in { background: var(--green); color: white; box-shadow: 0 3px 12px rgba(22,163,74,0.3); }
+    .btn-in:active:not(:disabled) { box-shadow: 0 1px 4px rgba(22,163,74,0.2); }
+    .btn-out { background: var(--red); color: white; box-shadow: 0 3px 12px rgba(220,38,38,0.3); }
+    .btn-out:active:not(:disabled) { box-shadow: 0 1px 4px rgba(220,38,38,0.2); }
+    .btn-secondary { background: var(--gray-100); color: var(--gray-700); font-size: 15px; padding: 13px; }
+    .btn-primary { background: var(--primary); color: white; font-size: 15px; padding: 13px; box-shadow: 0 2px 8px rgba(79,70,229,0.25); }
+    .btn-danger-outline { background: white; color: var(--red); border: 2px solid #fca5a5; font-size: 15px; padding: 12px; }
+    .btn-gap { height: 10px; }
+
+    /* ── GPS STATUS ── */
+    .gps-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 14px;
+      padding: 10px 12px;
+      background: var(--gray-50);
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--gray-200);
+    }
+    .gps-icon { font-size: 15px; }
+    .gps-text { font-size: 13px; color: var(--gray-600); flex: 1; }
+    .gps-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--gray-300); flex-shrink: 0; }
+    .gps-ready .gps-dot { background: var(--green); }
+    .gps-loading .gps-dot { background: var(--amber); animation: blink 1.2s ease-in-out infinite; }
+    .gps-error .gps-dot { background: var(--red); }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.25} }
+
+    /* ── TODAY LOG ── */
+    .log-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 11px 0;
+      border-bottom: 1px solid var(--gray-100);
+    }
+    .log-item:last-child { border-bottom: none; }
+    .log-badge {
+      width: 38px; height: 38px;
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 17px;
+      flex-shrink: 0;
+    }
+    .log-in .log-badge { background: var(--green-light); }
+    .log-out .log-badge { background: var(--red-light); }
+    .log-info { flex: 1; min-width: 0; }
+    .log-action { font-size: 14px; font-weight: 700; }
+    .log-in .log-action { color: var(--green); }
+    .log-out .log-action { color: var(--red); }
+    .log-meta { font-size: 12px; color: var(--gray-500); margin-top: 2px; }
+    .map-link { color: var(--primary); text-decoration: none; font-weight: 600; }
+    .log-time { font-size: 15px; font-weight: 700; color: var(--gray-700); flex-shrink: 0; }
+
+    /* ── LOADING OVERLAY ── */
+    #loading-overlay {
+      position: fixed; inset: 0;
+      background: rgba(255,255,255,0.88);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 500;
+    }
+    #loading-overlay.show { display: flex; }
+    .spinner {
+      width: 52px; height: 52px;
+      border: 4px solid var(--gray-200);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin 0.75s linear infinite;
+      margin-bottom: 18px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-msg { font-size: 16px; font-weight: 600; color: var(--gray-700); }
+    .loading-sub { font-size: 13px; color: var(--gray-500); margin-top: 6px; }
+
+    /* ── TOAST ── */
+    #toast {
+      position: fixed;
+      bottom: 90px;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      opacity: 0;
+      background: var(--gray-900);
+      color: white;
+      padding: 12px 22px;
+      border-radius: 100px;
+      font-size: 14px;
+      font-weight: 600;
+      z-index: 600;
+      transition: all 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
+      pointer-events: none;
+      white-space: nowrap;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.25);
+    }
+    #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    #toast.success { background: var(--green); }
+    #toast.error { background: var(--red); }
+    #toast.warn { background: var(--amber); }
+
+    /* ── BOTTOM NAV ── */
+    .bottom-nav {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      background: white;
+      border-top: 1px solid var(--gray-200);
+      display: flex;
+      z-index: 80;
+      padding-bottom: env(safe-area-inset-bottom);
+      box-shadow: 0 -2px 12px rgba(0,0,0,0.06);
+    }
+    .nav-btn {
+      flex: 1;
+      padding: 11px 4px 10px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      border: none;
+      background: none;
+      cursor: pointer;
+      color: var(--gray-400);
+      font-size: 11px;
+      font-weight: 600;
+      -webkit-tap-highlight-color: transparent;
+      transition: color 0.15s;
+    }
+    .nav-btn.active { color: var(--primary); }
+    .nav-icon { font-size: 24px; line-height: 1; }
+
+    /* ── ADMIN LOGIN ── */
+    .admin-login-wrap { max-width: 360px; margin: 40px auto 0; padding: 0 8px; }
+    .login-icon { font-size: 56px; text-align: center; margin-bottom: 10px; }
+    .login-title { font-size: 22px; font-weight: 800; text-align: center; margin-bottom: 4px; }
+    .login-sub { font-size: 14px; color: var(--gray-500); text-align: center; margin-bottom: 24px; }
+    .error-text { color: var(--red); font-size: 13px; margin-bottom: 10px; }
+
+    input[type="password"], input[type="text"], input[type="date"] {
+      width: 100%;
+      padding: 13px 16px;
+      border: 2px solid var(--gray-200);
+      border-radius: var(--radius-sm);
+      font-size: 16px;
+      font-family: inherit;
+      color: var(--gray-900);
+      background: white;
+      transition: border-color 0.15s;
+      margin-bottom: 10px;
+    }
+    input:focus { outline: none; border-color: var(--primary); }
+    input[type="date"] { font-size: 14px; padding: 10px 12px; margin-bottom: 0; }
+
+    /* ── ADMIN SECTIONS ── */
+    .section-title {
+      font-size: 16px;
+      font-weight: 800;
+      color: var(--gray-900);
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Today grid */
+    .staff-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .staff-tile {
+      padding: 13px;
+      border-radius: var(--radius-sm);
+      border: 2px solid var(--gray-200);
+      background: var(--gray-50);
+    }
+    .tile-in { border-color: #86efac; background: #f0fdf4; }
+    .tile-out { border-color: #fca5a5; background: #fef2f2; }
+    .tile-name { font-size: 13px; font-weight: 700; margin-bottom: 4px; }
+    .tile-status { font-size: 12px; font-weight: 500; }
+    .tile-in .tile-status { color: var(--green); }
+    .tile-out .tile-status { color: var(--red); }
+    .tile-none .tile-status { color: var(--gray-400); }
+
+    /* Filter chips */
+    .chips-row {
+      display: flex;
+      gap: 7px;
+      overflow-x: auto;
+      padding-bottom: 3px;
+      margin-bottom: 12px;
+      scrollbar-width: none;
+    }
+    .chips-row::-webkit-scrollbar { display: none; }
+    .chip {
+      padding: 6px 14px;
+      border-radius: 100px;
+      border: 2px solid var(--gray-200);
+      background: white;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--gray-600);
+      cursor: pointer;
+      white-space: nowrap;
+      flex-shrink: 0;
+      -webkit-tap-highlight-color: transparent;
+      transition: all 0.15s;
+    }
+    .chip.active { border-color: var(--primary); background: var(--primary-light); color: var(--primary); }
+
+    /* Date filter */
+    .date-filter {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 14px;
+      flex-wrap: wrap;
+    }
+    .date-label { font-size: 13px; color: var(--gray-500); font-weight: 500; }
+
+    /* Table */
+    .table-scroll { overflow-x: auto; margin: 0 -18px; padding: 0 18px; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 340px; }
+    th {
+      padding: 9px 8px;
+      text-align: left;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--gray-500);
+      border-bottom: 2px solid var(--gray-200);
+    }
+    td { padding: 10px 8px; border-bottom: 1px solid var(--gray-100); vertical-align: middle; }
+    tr:last-child td { border-bottom: none; }
+    .badge {
+      display: inline-block;
+      padding: 2px 9px;
+      border-radius: 100px;
+      font-size: 11px;
+      font-weight: 700;
+    }
+    .badge-in { background: var(--green-light); color: var(--green); }
+    .badge-out { background: var(--red-light); color: var(--red); }
+
+    /* Monthly summary */
+    .summary-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 13px 0;
+      border-bottom: 1px solid var(--gray-100);
+    }
+    .summary-item:last-child { border-bottom: none; }
+    .summary-name { font-weight: 700; font-size: 15px; }
+    .summary-days { font-size: 12px; color: var(--gray-500); margin-top: 3px; }
+    .summary-hours { font-size: 20px; font-weight: 800; color: var(--primary); }
+    .summary-hrs-label { font-size: 11px; color: var(--gray-400); margin-top: 2px; text-align: right; }
+
+    /* Month picker */
+    .month-row { display: flex; gap: 10px; margin-bottom: 14px; align-items: center; }
+    .month-row select { flex: 1; padding: 10px 14px; font-size: 15px; margin-bottom: 0; }
+
+    /* Settings staff inputs */
+    .staff-input-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+    .staff-num { font-size: 13px; font-weight: 700; color: var(--gray-400); min-width: 20px; }
+    .staff-input-row input { margin-bottom: 0; flex: 1; }
+
+    .divider { height: 1px; background: var(--gray-200); margin: 18px 0; }
+
+    /* Empty state */
+    .empty {
+      text-align: center;
+      padding: 36px 20px;
+      color: var(--gray-400);
+    }
+    .empty-icon { font-size: 44px; margin-bottom: 10px; }
+    .empty-text { font-size: 14px; }
+
+    .info-box {
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      border-radius: var(--radius-sm);
+      padding: 12px 14px;
+      font-size: 13px;
+      color: #1e40af;
+      margin-bottom: 14px;
+      line-height: 1.5;
+    }
+
+    /* ── CONFIRM MODAL ── */
+    #confirm-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.45);
+      display: none;
+      align-items: flex-end;
+      z-index: 400;
+    }
+    #confirm-overlay.show { display: flex; }
+    .confirm-sheet {
+      background: white;
+      border-radius: 20px 20px 0 0;
+      padding: 24px 20px 40px;
+      width: 100%;
+      max-width: 480px;
+      margin: 0 auto;
+    }
+    .confirm-title { font-size: 19px; font-weight: 800; margin-bottom: 8px; }
+    .confirm-body { font-size: 15px; color: var(--gray-600); margin-bottom: 20px; line-height: 1.5; }
+    .confirm-gps {
+      background: var(--gray-50);
+      border: 1px solid var(--gray-200);
+      border-radius: var(--radius-sm);
+      padding: 12px;
+      font-size: 13px;
+      margin-bottom: 20px;
+      color: var(--gray-700);
+    }
+    .confirm-gps strong { display: block; margin-bottom: 4px; }
+    .confirm-btns { display: flex; flex-direction: column; gap: 10px; }
+  </style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════ HEADER ═══════════════════════════════════ -->
+<header class="app-header">
+  <div class="app-logo">
+    <span style="font-size:17px; font-weight:800; color:#111827; letter-spacing:-0.3px;">KC Group</span>
+  </div>
+  <div class="header-time">
+    <strong id="hdr-time">--:--</strong>
+    <span id="hdr-date">---</span>
+  </div>
+</header>
+
+<!-- ═══════════════════════════════════ STAFF PAGE ═══════════════════════════════════ -->
+<div class="page active" id="page-staff">
+  <div class="page-inner">
+
+    <div class="clock-card">
+      <div style="font-size:11px;font-weight:700;letter-spacing:0.12em;opacity:0.7;margin-bottom:6px;text-transform:uppercase">KC Group HQ · Attendance</div>
+      <div class="clock-time" id="big-clock">--:--:--</div>
+      <div class="clock-date" id="big-date">Loading…</div>
+    </div>
+
+    <div class="card">
+      <div class="field-label">Your Name</div>
+      <div class="select-wrap">
+        <select id="staff-select" onchange="onStaffSelect()">
+          <option value="">— Select your name —</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Status + action card (hidden until staff selected) -->
+    <div class="card" id="action-card" style="display:none">
+      <div class="status-row">
+        <div>
+          <div class="status-name" id="s-name">–</div>
+          <div class="status-since" id="s-since">–</div>
+        </div>
+        <div id="s-pill" class="status-pill pill-none">
+          <div class="pill-dot"></div>–
+        </div>
+      </div>
+
+      <button class="btn btn-in" id="btn-in" onclick="startClock('in')">
+        ▶&nbsp; Clock In
+      </button>
+      <div class="btn-gap"></div>
+      <button class="btn btn-out" id="btn-out" onclick="startClock('out')">
+        ■&nbsp; Clock Out
+      </button>
+
+      <div class="gps-row" id="gps-row">
+        <span class="gps-dot"></span>
+        <span class="gps-icon">📍</span>
+        <span class="gps-text" id="gps-text">Waiting for GPS…</span>
+      </div>
+    </div>
+
+    <!-- Today's log (hidden until staff selected) -->
+    <div class="card" id="today-card" style="display:none">
+      <div class="section-title">🗒 Today's Log</div>
+      <div id="today-list"></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════ ADMIN LOGIN PAGE ═══════════════════════════════════ -->
+<div class="page" id="page-admin-login">
+  <div class="page-inner">
+    <div class="admin-login-wrap">
+      <div style="font-size:48px;text-align:center;margin-bottom:10px">🔒</div>
+      <div class="login-title">KC Group Admin</div>
+      <div class="login-sub">Enter your admin password to continue</div>
+      <input type="password" id="login-pwd" placeholder="Password"
+             onkeydown="if(event.key==='Enter') doAdminLogin()">
+      <div class="error-text" id="login-err" style="display:none">
+        ❌ Incorrect password. Please try again.
+      </div>
+      <button class="btn btn-primary" onclick="doAdminLogin()">Login →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════ ADMIN DASHBOARD PAGE ═══════════════════════════════════ -->
+<div class="page" id="page-admin">
+  <div class="page-inner">
+
+    <!-- Today's Overview -->
+    <div class="card">
+      <div class="section-title">📊 Today's Overview</div>
+      <div class="staff-grid" id="admin-grid"></div>
+    </div>
+
+    <!-- Records -->
+    <div class="card">
+      <div class="section-title">📋 Attendance Records</div>
+      <div class="chips-row" id="chips-row"></div>
+      <div class="date-filter">
+        <span class="date-label">From</span>
+        <input type="date" id="f-from" onchange="renderRecordsTable()">
+        <span class="date-label">To</span>
+        <input type="date" id="f-to" onchange="renderRecordsTable()">
+      </div>
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>Staff</th>
+              <th>Action</th>
+              <th>Date &amp; Time</th>
+              <th>Location</th>
+            </tr>
+          </thead>
+          <tbody id="records-tbody"></tbody>
+        </table>
+      </div>
+      <div id="records-empty" class="empty" style="display:none">
+        <div class="empty-icon">📭</div>
+        <div class="empty-text">No records for this period</div>
+      </div>
+    </div>
+
+    <!-- Monthly Summary -->
+    <div class="card">
+      <div class="section-title">📅 Monthly Summary</div>
+      <div class="month-row">
+        <select id="month-sel" onchange="renderMonthlySummary()"></select>
+      </div>
+      <div id="monthly-list"></div>
+    </div>
+
+    <!-- Export -->
+    <div class="card">
+      <div class="section-title">💾 Export</div>
+      <div class="info-box">📎 Downloads all attendance records as a CSV file, compatible with Excel and Google Sheets.</div>
+      <button class="btn btn-secondary" onclick="exportCSV()">⬇&nbsp; Download CSV</button>
+    </div>
+
+    <!-- Settings -->
+    <div class="card">
+      <div class="section-title">⚙️ Settings</div>
+
+      <div class="field-label" style="margin-bottom:10px">Staff Names (HQ Team)</div>
+      <div id="staff-inputs"></div>
+      <button class="btn btn-primary" onclick="saveStaffNames()" style="margin-top:4px">
+        Save Names
+      </button>
+
+      <div class="divider"></div>
+
+      <div class="field-label" style="margin-bottom:10px">Change Admin Password</div>
+      <input type="password" id="pwd-new" placeholder="New password">
+      <input type="password" id="pwd-confirm" placeholder="Confirm new password">
+      <div class="error-text" id="pwd-err" style="display:none"></div>
+      <button class="btn btn-secondary" onclick="changeAdminPwd()">Update Password</button>
+
+      <div class="divider"></div>
+      <button class="btn btn-danger-outline" onclick="doAdminLogout()">🚪 Logout</button>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════ BOTTOM NAV ═══════════════════════════════════ -->
+<nav class="bottom-nav">
+  <button class="nav-btn active" id="nav-staff" onclick="showPage('staff')">
+    <div class="nav-icon">🕐</div>Clock In/Out
+  </button>
+  <button class="nav-btn" id="nav-admin" onclick="showAdminNav()">
+    <div class="nav-icon">🔒</div>Admin
+  </button>
+</nav>
+
+<!-- ═══════════════════════════════════ CONFIRM SHEET ═══════════════════════════════════ -->
+<div id="confirm-overlay" onclick="if(event.target===this)closeConfirm()">
+  <div class="confirm-sheet">
+    <div class="confirm-title" id="conf-title">Confirm Clock In</div>
+    <div class="confirm-body" id="conf-body"></div>
+    <div class="confirm-gps" id="conf-gps"></div>
+    <div class="confirm-btns">
+      <button class="btn btn-in" id="conf-btn" onclick="confirmClock()">Confirm</button>
+      <button class="btn btn-secondary" onclick="closeConfirm()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════ LOADING ═══════════════════════════════════ -->
+<div id="loading-overlay">
+  <div class="spinner"></div>
+  <div class="loading-msg" id="loading-msg">Acquiring GPS…</div>
+  <div class="loading-sub" id="loading-sub">This may take a few seconds</div>
+</div>
+
+<!-- ═══════════════════════════════════ TOAST ═══════════════════════════════════ -->
+<div id="toast"></div>
+
+<!-- ═══════════════════════════════════ SCRIPT ═══════════════════════════════════ -->
+<script>
+'use strict';
+
+// ─────────────── STORAGE ───────────────
+const KEYS = {
+  records : 'kc_records_v2',
+  staff   : 'kc_staff_v2',
+  adminPwd: 'kc_pwd_v2'
+};
+
+const DEFAULT_STAFF = ['Mei Siew','Charmayne','Esther','Jia Jing','Alexandra'];
+const DEFAULT_PWD   = 'admin123';
+
+function getRecords()        { try { return JSON.parse(localStorage.getItem(KEYS.records)||'[]'); } catch { return []; } }
+function saveRecords(arr)    { localStorage.setItem(KEYS.records, JSON.stringify(arr)); }
+function getStaff()          { try { return JSON.parse(localStorage.getItem(KEYS.staff)||'null') || DEFAULT_STAFF; } catch { return DEFAULT_STAFF; } }
+function saveStaffList(arr)  { localStorage.setItem(KEYS.staff, JSON.stringify(arr)); }
+function getAdminPwd()       { return localStorage.getItem(KEYS.adminPwd) || DEFAULT_PWD; }
+
+function appendRecord(rec) {
+  const arr = getRecords();
+  arr.push(rec);
+  saveRecords(arr);
+}
+
+// ─────────────── APP STATE ───────────────
+let adminLoggedIn = false;
+let pendingAction = null;   // { action:'in'|'out', gps }
+let currentGps    = null;
+let gpsState      = 'idle'; // idle | loading | ready | denied | unavailable
+
+// ─────────────── LIVE CLOCK ───────────────
+function tick() {
+  const now = new Date();
+  const t = now.toLocaleTimeString('en-MY', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  const d = now.toLocaleDateString('en-MY', {weekday:'long',year:'numeric',month:'long',day:'numeric'});
+  const dShort = now.toLocaleDateString('en-MY', {day:'numeric',month:'short'});
+  const tShort = now.toLocaleTimeString('en-MY', {hour:'2-digit',minute:'2-digit'});
+  document.getElementById('big-clock').textContent = t;
+  document.getElementById('big-date').textContent = d;
+  document.getElementById('hdr-time').textContent = tShort;
+  document.getElementById('hdr-date').textContent = dShort;
+}
+setInterval(tick, 1000);
+tick();
+
+// ─────────────── GPS ───────────────
+function requestGPS() {
+  if (!navigator.geolocation) {
+    setGps('unavailable', '❌ GPS not supported on this device');
+    return;
+  }
+  setGps('loading', 'Acquiring GPS location…');
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      currentGps = {
+        lat: pos.coords.latitude,
+        lng: pos.coords.longitude,
+        accuracy: Math.round(pos.coords.accuracy)
+      };
+      setGps('ready', `📍 GPS ready — ±${currentGps.accuracy}m accuracy`);
+    },
+    err => {
+      currentGps = null;
+      if (err.code === 1) setGps('denied', '⚠️ Location access denied — please allow in browser settings');
+      else if (err.code === 2) setGps('unavailable', '⚠️ GPS signal unavailable — try moving outdoors');
+      else setGps('unavailable', '⚠️ GPS timed out — tap Clock In/Out to retry');
+    },
+    { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 }
+  );
+}
+
+function setGps(state, text) {
+  gpsState = state;
+  const row = document.getElementById('gps-row');
+  const txt = document.getElementById('gps-text');
+  row.className = 'gps-row gps-' + state;
+  txt.textContent = text;
+}
+
+// ─────────────── PAGES ───────────────
+function showPage(p) {
+  document.querySelectorAll('.page').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
+  document.getElementById('page-' + p).classList.add('active');
+  document.getElementById('nav-' + (p === 'staff' ? 'staff' : 'admin')).classList.add('active');
+}
+
+function showAdminNav() {
+  if (adminLoggedIn) {
+    showPage('admin');
+    renderAdminPage();
+  } else {
+    showPage('admin-login');
+    document.getElementById('login-pwd').value = '';
+    document.getElementById('login-err').style.display = 'none';
+  }
+}
+
+// ─────────────── ADMIN AUTH ───────────────
+function doAdminLogin() {
+  const val = document.getElementById('login-pwd').value;
+  if (val === getAdminPwd()) {
+    adminLoggedIn = true;
+    document.getElementById('login-pwd').value = '';
+    document.getElementById('login-err').style.display = 'none';
+    showPage('admin');
+    renderAdminPage();
+  } else {
+    document.getElementById('login-err').style.display = 'block';
+    document.getElementById('login-pwd').value = '';
+  }
+}
+
+function doAdminLogout() {
+  adminLoggedIn = false;
+  showToast('Logged out');
+  showPage('staff');
+}
+
+// ─────────────── STAFF DROPDOWN ───────────────
+function populateDropdown() {
+  const sel = document.getElementById('staff-select');
+  const cur = sel.value;
+  const staff = getStaff();
+  sel.innerHTML = '<option value="">— Select your name —</option>';
+  staff.forEach(s => {
+    const o = document.createElement('option');
+    o.value = s; o.textContent = s;
+    if (s === cur) o.selected = true;
+    sel.appendChild(o);
+  });
+}
+
+function onStaffSelect() {
+  const name = document.getElementById('staff-select').value;
+  const show = !!name;
+  document.getElementById('action-card').style.display = show ? '' : 'none';
+  document.getElementById('today-card').style.display = show ? '' : 'none';
+  if (!show) return;
+  updateStatusUI(name);
+  renderTodayLog(name);
+  requestGPS();
+}
+
+// ─────────────── STATUS UI ───────────────
+function updateStatusUI(name) {
+  const last = getLastAction(name);
+  document.getElementById('s-name').textContent = name;
+
+  const pill = document.getElementById('s-pill');
+  const since = document.getElementById('s-since');
+  const btnIn = document.getElementById('btn-in');
+  const btnOut = document.getElementById('btn-out');
+
+  if (!last) {
+    pill.className = 'status-pill pill-none';
+    pill.innerHTML = '<div class="pill-dot"></div> Not checked in';
+    since.textContent = 'No records today';
+    btnIn.disabled = false;
+    btnOut.disabled = true;
+  } else if (last.action === 'in') {
+    pill.className = 'status-pill pill-in';
+    pill.innerHTML = '<div class="pill-dot"></div> Clocked In';
+    since.textContent = 'Since ' + fmtTime(last.ts);
+    btnIn.disabled = true;
+    btnOut.disabled = false;
+  } else {
+    pill.className = 'status-pill pill-out';
+    pill.innerHTML = '<div class="pill-dot"></div> Clocked Out';
+    since.textContent = 'Since ' + fmtTime(last.ts);
+    btnIn.disabled = false;
+    btnOut.disabled = true;
+  }
+}
+
+function getLastAction(name) {
+  const today = todayStr();
+  const recs = getRecords().filter(r => r.staff === name && r.ts.startsWith(today));
+  return recs.length ? recs[recs.length - 1] : null;
+}
+
+// ─────────────── TODAY LOG ───────────────
+function renderTodayLog(name) {
+  const today = todayStr();
+  const recs = getRecords()
+    .filter(r => r.staff === name && r.ts.startsWith(today))
+    .slice().reverse();
+  const el = document.getElementById('today-list');
+  if (!recs.length) {
+    el.innerHTML = '<div style="color:var(--gray-400);font-size:14px;padding:8px 0">No records yet today</div>';
+    return;
+  }
+  el.innerHTML = recs.map(r => {
+    const mapHtml = r.gpsOk
+      ? `<a class="map-link" href="https://maps.google.com/?q=${r.lat},${r.lng}" target="_blank">📍 View Map</a> · ±${r.accuracy}m`
+      : `<span style="color:var(--gray-400)">📍 ${r.gpsErr || 'GPS unavailable'}</span>`;
+    return `<div class="log-item log-${r.action}">
+      <div class="log-badge">${r.action==='in'?'✅':'🚪'}</div>
+      <div class="log-info">
+        <div class="log-action">${r.action==='in'?'Clocked In':'Clocked Out'}</div>
+        <div class="log-meta">${mapHtml}</div>
+      </div>
+      <div class="log-time">${fmtTime(r.ts)}</div>
+    </div>`;
+  }).join('');
+}
+
+// ─────────────── CLOCK ACTION ───────────────
+async function startClock(action) {
+  const name = document.getElementById('staff-select').value;
+  if (!name) { showToast('Please select your name', 'error'); return; }
+
+  showLoading('Acquiring GPS location…', 'Please keep the page open');
+
+  let gps = null;
+  let gpsErr = null;
+  try {
+    const pos = await new Promise((res, rej) => {
+      if (!navigator.geolocation) { rej(new Error('unsupported')); return; }
+      navigator.geolocation.getCurrentPosition(res, rej, {
+        enableHighAccuracy: true, timeout: 12000, maximumAge: 30000
+      });
+    });
+    gps = { lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy: Math.round(pos.coords.accuracy) };
+    setGps('ready', `📍 GPS ready — ±${gps.accuracy}m accuracy`);
+  } catch(e) {
+    gpsErr = e.code === 1 ? 'Location access denied' : (e.message === 'unsupported' ? 'GPS not supported' : 'GPS unavailable');
+    setGps(e.code === 1 ? 'denied' : 'unavailable', '⚠️ ' + gpsErr);
+  }
+
+  hideLoading();
+
+  // Build confirm sheet
+  pendingAction = { action, name, gps, gpsErr };
+  const isIn = action === 'in';
+  const now = new Date();
+
+  document.getElementById('conf-title').textContent = isIn ? '▶ Confirm Clock In' : '■ Confirm Clock Out';
+  document.getElementById('conf-body').textContent =
+    `${name} — ${now.toLocaleTimeString('en-MY', {hour:'2-digit',minute:'2-digit',second:'2-digit'})} on ${now.toLocaleDateString('en-MY',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}`;
+
+  const gpsEl = document.getElementById('conf-gps');
+  if (gps) {
+    gpsEl.innerHTML = `<strong>📍 GPS Location Captured</strong>Coordinates: ${gps.lat.toFixed(6)}, ${gps.lng.toFixed(6)}<br>Accuracy: ±${gps.accuracy}m`;
+  } else {
+    gpsEl.innerHTML = `<strong>⚠️ GPS Not Captured</strong>${gpsErr || 'Location unavailable'}. Record will be saved without GPS.`;
+  }
+
+  const confBtn = document.getElementById('conf-btn');
+  confBtn.className = `btn btn-${isIn?'in':'out'}`;
+  confBtn.textContent = isIn ? '✅ Confirm Clock In' : '🚪 Confirm Clock Out';
+
+  document.getElementById('confirm-overlay').classList.add('show');
+}
+
+function confirmClock() {
+  if (!pendingAction) return;
+  const { action, name, gps, gpsErr } = pendingAction;
+  const now = new Date();
+
+  const rec = {
+    id    : now.getTime() + '_' + Math.random().toString(36).slice(2,6),
+    staff : name,
+    action: action,
+    ts    : now.toISOString(),
+    gpsOk : !!gps,
+    lat   : gps ? gps.lat : null,
+    lng   : gps ? gps.lng : null,
+    accuracy: gps ? gps.accuracy : null,
+    gpsErr: gpsErr || null
+  };
+
+  appendRecord(rec);
+  closeConfirm();
+
+  const label = action === 'in' ? 'Clocked In' : 'Clocked Out';
+  showToast(`✅ ${label} at ${fmtTime(now.toISOString())}`, 'success');
+  updateStatusUI(name);
+  renderTodayLog(name);
+}
+
+function closeConfirm() {
+  document.getElementById('confirm-overlay').classList.remove('show');
+  pendingAction = null;
+}
+
+// ─────────────── ADMIN PAGE ───────────────
+function renderAdminPage() {
+  renderTodayGrid();
+  buildChips();
+  const t = todayStr();
+  document.getElementById('f-from').value = t;
+  document.getElementById('f-to').value   = t;
+  renderRecordsTable();
+  buildMonthOptions();
+  renderMonthlySummary();
+  buildStaffInputs();
+}
+
+function renderTodayGrid() {
+  const staff = getStaff();
+  const today = todayStr();
+  const recs  = getRecords();
+  const grid  = document.getElementById('admin-grid');
+
+  grid.innerHTML = staff.map(name => {
+    const last = recs.filter(r => r.staff === name && r.ts.startsWith(today))
+                     .slice(-1)[0];
+    let cls = 'tile-none', status = 'Not checked in';
+    if (last?.action === 'in')  { cls = 'tile-in';  status = '🟢 In · ' + fmtTime(last.ts); }
+    if (last?.action === 'out') { cls = 'tile-out'; status = '🔴 Out · ' + fmtTime(last.ts); }
+    return `<div class="staff-tile ${cls}"><div class="tile-name">${name}</div><div class="tile-status">${status}</div></div>`;
+  }).join('');
+}
+
+function buildChips() {
+  const staff = getStaff();
+  const row = document.getElementById('chips-row');
+  row.innerHTML = `<button class="chip active" data-f="" onclick="pickChip(this)">All Staff</button>`
+    + staff.map(s => `<button class="chip" data-f="${s}" onclick="pickChip(this)">${s.split(' ')[0]}</button>`).join('');
+}
+
+function pickChip(el) {
+  document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  renderRecordsTable();
+}
+
+function renderRecordsTable() {
+  const filter = document.querySelector('.chip.active')?.dataset.f || '';
+  const from   = document.getElementById('f-from').value;
+  const to     = document.getElementById('f-to').value;
+
+  let recs = getRecords().slice().reverse();
+  if (filter) recs = recs.filter(r => r.staff === filter);
+  if (from)   recs = recs.filter(r => r.ts.slice(0,10) >= from);
+  if (to)     recs = recs.filter(r => r.ts.slice(0,10) <= to);
+
+  const tbody = document.getElementById('records-tbody');
+  const empty = document.getElementById('records-empty');
+
+  if (!recs.length) {
+    tbody.innerHTML = '';
+    empty.style.display = '';
+    return;
+  }
+  empty.style.display = 'none';
+
+  tbody.innerHTML = recs.map(r => {
+    const loc = r.gpsOk
+      ? `<a style="color:var(--primary)" href="https://maps.google.com/?q=${r.lat},${r.lng}" target="_blank">📍 Map</a>`
+      : `<span style="color:var(--gray-300)">–</span>`;
+    return `<tr>
+      <td style="font-weight:600">${r.staff}</td>
+      <td><span class="badge badge-${r.action}">${r.action.toUpperCase()}</span></td>
+      <td>${fmtDateTime(r.ts)}</td>
+      <td>${loc}</td>
+    </tr>`;
+  }).join('');
+}
+
+function buildMonthOptions() {
+  const sel = document.getElementById('month-sel');
+  const now = new Date();
+  const months = new Set([`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`]);
+  getRecords().forEach(r => months.add(r.ts.slice(0,7)));
+  sel.innerHTML = Array.from(months).sort().reverse().map(m => {
+    const [y,mo] = m.split('-');
+    const label = new Date(+y, +mo-1).toLocaleDateString('en-MY', {month:'long',year:'numeric'});
+    return `<option value="${m}">${label}</option>`;
+  }).join('');
+}
+
+function renderMonthlySummary() {
+  const month = document.getElementById('month-sel').value;
+  if (!month) return;
+  const staff = getStaff();
+  const recs  = getRecords().filter(r => r.ts.startsWith(month));
+
+  const rows = staff.map(name => {
+    const sRecs = recs.filter(r => r.staff === name);
+    const byDay = {};
+    sRecs.forEach(r => { const d = r.ts.slice(0,10); (byDay[d] = byDay[d]||[]).push(r); });
+
+    let totalMs = 0, daysPresent = 0;
+    Object.values(byDay).forEach(dayRecs => {
+      const ins  = dayRecs.filter(r => r.action==='in' ).map(r => +new Date(r.ts));
+      const outs = dayRecs.filter(r => r.action==='out').map(r => +new Date(r.ts));
+      if (ins.length) daysPresent++;
+      if (ins.length && outs.length) {
+        const firstIn = Math.min(...ins), lastOut = Math.max(...outs);
+        if (lastOut > firstIn) totalMs += lastOut - firstIn;
+      }
+    });
+
+    const hrs  = Math.floor(totalMs / 3600000);
+    const mins = Math.floor((totalMs % 3600000) / 60000);
+    const hrsDisplay = totalMs ? `${hrs}h ${mins}m` : '–';
+    return { name, daysPresent, hrsDisplay };
+  });
+
+  document.getElementById('monthly-list').innerHTML = rows.map(r =>
+    `<div class="summary-item">
+      <div>
+        <div class="summary-name">${r.name}</div>
+        <div class="summary-days">${r.daysPresent} day${r.daysPresent!==1?'s':''} present</div>
+      </div>
+      <div style="text-align:right">
+        <div class="summary-hours">${r.hrsDisplay}</div>
+        <div class="summary-hrs-label">hrs worked</div>
+      </div>
+    </div>`
+  ).join('');
+}
+
+// ─────────────── SETTINGS ───────────────
+function buildStaffInputs() {
+  const staff = getStaff();
+  document.getElementById('staff-inputs').innerHTML = staff.map((s,i) =>
+    `<div class="staff-input-row">
+      <div class="staff-num">${i+1}.</div>
+      <input type="text" id="si-${i}" value="${s}" placeholder="Staff ${i+1} name">
+    </div>`
+  ).join('');
+}
+
+function saveStaffNames() {
+  const names = Array.from({length:5}, (_,i) => {
+    const val = document.getElementById(`si-${i}`)?.value.trim();
+    return val || `Staff ${i+1}`;
+  });
+  saveStaffList(names);
+  populateDropdown();
+  showToast('✅ Staff names saved', 'success');
+  renderAdminPage();
+}
+
+function changeAdminPwd() {
+  const p1 = document.getElementById('pwd-new').value;
+  const p2 = document.getElementById('pwd-confirm').value;
+  const err = document.getElementById('pwd-err');
+  if (!p1)       { err.textContent='Password cannot be empty'; err.style.display=''; return; }
+  if (p1 !== p2) { err.textContent='Passwords do not match'; err.style.display=''; return; }
+  localStorage.setItem(KEYS.adminPwd, p1);
+  document.getElementById('pwd-new').value='';
+  document.getElementById('pwd-confirm').value='';
+  err.style.display='none';
+  showToast('✅ Password updated', 'success');
+}
+
+// ─────────────── EXPORT ───────────────
+function exportCSV() {
+  const recs = getRecords();
+  if (!recs.length) { showToast('No records to export', 'warn'); return; }
+  const header = 'Staff,Action,Date,Time,GPS OK,Latitude,Longitude,Accuracy (m),GPS Note\n';
+  const rows = recs.map(r => {
+    const d = new Date(r.ts);
+    const date = d.toLocaleDateString('en-MY');
+    const time = d.toLocaleTimeString('en-MY');
+    return `"${r.staff}","${r.action}","${date}","${time}","${r.gpsOk?'Yes':'No'}","${r.lat??''}","${r.lng??''}","${r.accuracy??''}","${r.gpsErr??''}"`;
+  }).join('\n');
+  const blob = new Blob([header+rows], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `KCGroup_Attendance_${todayStr()}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast('📥 CSV downloaded', 'success');
+}
+
+// ─────────────── HELPERS ───────────────
+function todayStr() {
+  return new Date().toISOString().slice(0,10);
+}
+function fmtTime(iso) {
+  return new Date(iso).toLocaleTimeString('en-MY', {hour:'2-digit',minute:'2-digit'});
+}
+function fmtDateTime(iso) {
+  const d = new Date(iso);
+  return d.toLocaleDateString('en-MY',{day:'numeric',month:'short'}) + ' '
+       + d.toLocaleTimeString('en-MY',{hour:'2-digit',minute:'2-digit'});
+}
+
+let toastTimer;
+function showToast(msg, type='') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (type?' '+type:'');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 3000);
+}
+function showLoading(msg, sub='') {
+  document.getElementById('loading-msg').textContent = msg;
+  document.getElementById('loading-sub').textContent = sub;
+  document.getElementById('loading-overlay').classList.add('show');
+}
+function hideLoading() {
+  document.getElementById('loading-overlay').classList.remove('show');
+}
+
+// ─────────────── INIT ───────────────
+populateDropdown();
+// Warm up GPS in background
+if (navigator.geolocation) {
+  navigator.geolocation.getCurrentPosition(
+    p => { currentGps = {lat:p.coords.latitude, lng:p.coords.longitude, accuracy:Math.round(p.coords.accuracy)}; },
+    () => {},
+    {enableHighAccuracy:true, timeout:8000, maximumAge:120000}
+  );
+}
+</script>
+</body>
+</html>
